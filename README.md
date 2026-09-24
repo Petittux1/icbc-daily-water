@@ -96,6 +96,27 @@ rm /data/adb/modules/icbc_daily_water/state.txt
 - **重启后没自动启动？** 确认模块已启用且 `log.txt` 有最新的 `SD_BOOT`。
 - **失败排查？** 看 `log.txt` 里最近的 `DPX` 行与失败截图（`SNAP=1` 时输出到 `WORK` 目录）。
 
+## 文件说明
+
+| 文件 | 作用 |
+|---|---|
+| `module.prop` | 模块元数据（名称 / 版本 / 作者），KSU / Magisk 管理器里显示的信息 |
+| `service.sh` | **守护进程**（开机自启）：每 2s 轮询前台、二次确认、当日防重、15 分钟冷却、失败重试上限，触发后调用 `water.sh` |
+| `water.sh` | **主水链**：工行前台门 → 首页三点像素投票 → 点入口 → 广告防御 → 下滑 → 立即参与 → 浇水；成功防重 + 震动提示 |
+| `customize.sh` | 刷入 zip 时由安装器执行（设置文件权限），平时不运行 |
+| `tools/px.py` | 校准取色工具：`python3 tools/px.py 截图.png x,y` 输出该点 RGB |
+| `tools/run_once.sh` | 手动直跑水链（先切到首页再执行，不经过守护，便于观察） |
+| `tools/build_zip.sh` | 从仓库重新生成可刷入的模块 zip |
+| `README.md` | 本文档 |
+| `LICENSE` | MIT 许可 |
+| `.gitignore` | git 忽略运行产物 / 截图 / 状态文件 |
+
+构建可刷入 zip（在仓库根目录）：
+
+```sh
+bash tools/build_zip.sh
+```
+
 ## 许可证
 
 [MIT](LICENSE) License.
