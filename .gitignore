@@ -1,0 +1,12 @@
+# 运行产物 / 取证截图 / 敏感文件一律不入库
+*.raw
+*.png
+*.jpg
+zx_*.png
+log.txt
+state.txt
+cool.txt
+try.txt
+debug.txt
+lock/
+__pycache__/
