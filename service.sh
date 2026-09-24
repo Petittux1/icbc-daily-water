@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# icbc_daily_water 浇水服务 (KSU 守护进程 v2.3: 轮询3->2s / 确认3->2s, 首点更快 + 日志裁剪)
+# icbc_daily_water 浇水服务 (KSU 守护进程 v2.4: 单例加固 + 并发抢锁不污染失败计数 + 轮询2s/确认2s)
 PKG=com.icbc
 M=/data/adb/modules/icbc_daily_water
 ST=$M/state.txt
@@ -17,10 +17,11 @@ if [ -f $LOG ]; then
   fi
 fi
 
-# 单例: 杀掉其它同脚本实例
+# 单例: 杀掉其它同脚本实例, 稍等让被杀进程落地
 for p in $(pgrep -f 'icbc_daily_water/service.sh' 2>/dev/null); do
   [ "$p" != "$$" ] && kill -9 $p 2>/dev/null
 done
+sleep 1
 
 echo $(date +%m%d-%H%M) SD_BOOT >> $LOG
 
@@ -70,10 +71,15 @@ while true; do
               echo $(date +%m%d-%H%M) OK >> $LOG
               rm -f $TRY
             else
-              CT=$(cat $TRY 2>/dev/null)
-              CT=${CT:-0}
-              echo $((CT+1)) > $TRY
-              echo $(date +%m%d-%H%M) FAIL$RC >> $LOG
+              # 9=锁被占(并发抢跑) 3=工行未到前台(手动误跑): 都不算失败, 不污染失败计数
+              if [ $RC -eq 9 ] || [ $RC -eq 3 ]; then
+                echo $(date +%m%d-%H%M) SKIP$RC >> $LOG
+              else
+                CT=$(cat $TRY 2>/dev/null)
+                CT=${CT:-0}
+                echo $((CT+1)) > $TRY
+                echo $(date +%m%d-%H%M) FAIL$RC >> $LOG
+              fi
             fi
           fi
         fi

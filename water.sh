@@ -1,7 +1,7 @@
 #!/system/bin/sh
-# icbc_daily_water / water.sh v7.6  首点提速 + 首页判定耐心等待(前2次探测不回退, 不抢跑)
+# icbc_daily_water / water.sh v7.7  前台门: 工行不到前台绝不动手 + 耐心找首页
 # 纯 root 直控: screencap 取屏 + 像素探针判定 + sendevent 注入, 不用无障碍/Xposed/input
-echo VER v7.6
+echo VER v7.7
 
 # ============ 设备配置区 (每台设备按 README 校准) ============
 D=0                          # 显示ID: adb shell dumpsys display 查 mDisplayId, 多数手机为 0
@@ -39,6 +39,27 @@ if [ -z "$TDEV" ] || [ ! -e "$TDEV" ]; then
   { echo "BID=$BID"; echo "TDEV=$TDEV"; echo "BDEV=$BDEV"; echo "PDEV=$PDEV"; } > $M/dev.conf 2>/dev/null
 fi
 echo DEVT TDEV=$TDEV BDEV=$BDEV PDEV=$PDEV
+
+# ---- 0. 工行前台门: 工行不到前台绝不动手 (防误按其它 App) ----
+FGOK=0
+i=0
+while [ $i -lt 30 ]; do
+  FG=$(dumpsys activity activities 2>/dev/null | grep -m1 topResumedActivity)
+  [ -z "$FG" ] && FG=$(dumpsys activity activities 2>/dev/null | grep -m1 -E 'mResumedActivity|mFocusedActivity')
+  case "$FG" in
+    *"com.icbc"*) FGOK=1; break;;
+  esac
+  [ $i -eq 0 ] && echo S0_WAIT_FG
+  sleep 2
+  i=$((i+1))
+done
+echo "S0_FG FGOK=$FGOK"
+if [ $FGOK -eq 0 ]; then
+  echo FG_FAIL
+  buzz
+  echo FAIL_END 3
+  exit 3
+fi
 
 # ================= 注入原语 =================
 stap() {
