@@ -1,6 +1,6 @@
 id=icbc_daily_water
 name=ICBC 浇水小助手（学习用）
-version=v0.7.5
-versionCode=75
+version=v0.7.6
+versionCode=76
 author=anonymous-learning
 description=每日首次打开工行 App 时自动进入热门任务浇水领 i豆。纯 root 像素注入实现，仅供学习研究，不提供任何保证。

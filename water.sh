@@ -1,7 +1,7 @@
 #!/system/bin/sh
-# icbc_daily_water / water.sh v7.5  首点提速: 设备路径缓存(单遍扫描) + 复用首页截图
+# icbc_daily_water / water.sh v7.6  首点提速 + 首页判定耐心等待(前2次探测不回退, 不抢跑)
 # 纯 root 直控: screencap 取屏 + 像素探针判定 + sendevent 注入, 不用无障碍/Xposed/input
-echo VER v7.5
+echo VER v7.6
 
 # ============ 设备配置区 (每台设备按 README 校准) ============
 D=0                          # 显示ID: adb shell dumpsys display 查 mDisplayId, 多数手机为 0
@@ -158,7 +158,10 @@ if [ -n "$BDEV" ]; then
       snap home
       break
     fi
-    sback
+    # 耐心等待: 前 2 次探测不回退, 避免和冷启动/手动导航打架
+    if [ $i -ge 2 ]; then
+      sback
+    fi
     sleep 2
     i=$((i+1))
   done
