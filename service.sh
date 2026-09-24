@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# icbc_daily_water 浇水服务 (KSU 守护进程 v2.2: 轮询5->3s / 确认5->3s + 日志裁剪)
+# icbc_daily_water 浇水服务 (KSU 守护进程 v2.3: 轮询3->2s / 确认3->2s, 首点更快 + 日志裁剪)
 PKG=com.icbc
 M=/data/adb/modules/icbc_daily_water
 ST=$M/state.txt
@@ -53,7 +53,7 @@ while true; do
           *) IN=0;;
         esac
         if [ $IN -eq 1 ]; then
-          sleep 3
+          sleep 2
           FG2=$(fg_detect)
           [ -f $DBG ] && echo $(date +%H%M) DBG1 "$FG2" >> $LOG
           case "$FG2" in
@@ -80,9 +80,9 @@ while true; do
       fi
     fi
   fi
-  sleep 3
+  sleep 2
   N=$((N+1))
-  if [ $N -ge 18 ]; then
+  if [ $N -ge 45 ]; then
     N=0
     [ -f $DBG ] && echo $(date +%H%M) TICK >> $LOG
   fi

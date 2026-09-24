@@ -1,7 +1,7 @@
 #!/system/bin/sh
-# icbc_daily_water / water.sh v7.4  提速 + 震动提示 + 设备配置集中区
+# icbc_daily_water / water.sh v7.5  首点提速: 设备路径缓存(单遍扫描) + 复用首页截图
 # 纯 root 直控: screencap 取屏 + 像素探针判定 + sendevent 注入, 不用无障碍/Xposed/input
-echo VER v7.4
+echo VER v7.5
 
 # ============ 设备配置区 (每台设备按 README 校准) ============
 D=0                          # 显示ID: adb shell dumpsys display 查 mDisplayId, 多数手机为 0
@@ -19,29 +19,25 @@ L=$M/lock
 mkdir $L 2>/dev/null || exit 9
 trap 'rmdir $L 2>/dev/null' 0 1 2 15
 
-# ================= 设备发现 =================
-TDEV=
-for e in /dev/input/event*; do
-  if getevent -p $e 2>/dev/null | head -2 | grep -q Xiaomi_Touch_Input_0; then
-    TDEV=$e; break
-  fi
-done
-[ -z "$TDEV" ] && TDEV=/dev/input/event8
-
-BDEV=
-for e in /dev/input/event*; do
-  if getevent -p $e 2>/dev/null | grep -q '009e'; then
-    BDEV=$e; break
-  fi
-done
-
-PDEV=
-for e in /dev/input/event*; do
-  if getevent -p $e 2>/dev/null | grep -q '0074'; then
-    PDEV=$e; break
-  fi
-done
-
+# ================= 设备发现 (单遍扫描 + boot_id 缓存) =================
+discdev() {
+  TDEV=; BDEV=; PDEV=
+  for e in /dev/input/event*; do
+    P=$(getevent -p $e 2>/dev/null)
+    case "$P" in *Xiaomi_Touch_Input_0*) [ -z "$TDEV" ] && TDEV=$e;; esac
+    case "$P" in *'009e'*) [ -z "$BDEV" ] && BDEV=$e;; esac
+    case "$P" in *'0074'*) [ -z "$PDEV" ] && PDEV=$e;; esac
+  done
+  [ -z "$TDEV" ] && TDEV=/dev/input/event8
+}
+BID=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)
+if [ -f $M/dev.conf ] && grep -q "BID=$BID" $M/dev.conf 2>/dev/null; then
+  . $M/dev.conf 2>/dev/null
+fi
+if [ -z "$TDEV" ] || [ ! -e "$TDEV" ]; then
+  discdev
+  { echo "BID=$BID"; echo "TDEV=$TDEV"; echo "BDEV=$BDEV"; echo "PDEV=$PDEV"; } > $M/dev.conf 2>/dev/null
+fi
 echo DEVT TDEV=$TDEV BDEV=$BDEV PDEV=$PDEV
 
 # ================= 注入原语 =================
@@ -97,9 +93,9 @@ shot() {
 }
 snap() {  # snap <tag>  取证留档 (SNAP=0 时跳过)
   [ "$SNAP" = "1" ] || return 0
-  screencap -d $D -p $WORK/zx_v74_$1.png 2>/dev/null
+  screencap -d $D -p $WORK/zx_v75_$1.png 2>/dev/null
   RCN=$?
-  [ -n "$CHOWN" ] && chown $CHOWN $WORK/zx_v74_$1.png 2>/dev/null
+  [ -n "$CHOWN" ] && chown $CHOWN $WORK/zx_v75_$1.png 2>/dev/null
   echo "SNAP $1 rc=$RCN"
 }
 PX() { set -- $(dd if=$RAW bs=1 skip=$((12+(($2*$SW+$1)*4))) count=3 2>/dev/null | od -An -tu1 -v); Rv=$1; Gv=$2; Bv=$3; }
@@ -188,8 +184,7 @@ if [ $H -ne 1 ]; then
   exit 1
 fi
 
-# ---- 2. 入口点击 + 广告快速防御 (不空等, ≤4秒) ----
-shot
+# ---- 2. 入口点击 + 广告快速防御 (复用 S1 的 RAW, 不再重截) ----
 PX 1150 345
 L0=$(((Rv+Gv+Bv)/3))
 PX 600 1200
