@@ -1,18 +1,30 @@
 #!/system/bin/sh
-# customize.sh - 模块刷入时由 KSU/Magisk 安装器执行: 设置文件权限
-# 只在安装/更新时运行一次, 平时不会执行
-SKIPMOUNT=true
-PROPFILE=false
-POSTFSDATA=false
-LATESTARTSERVICE=false
+# icbc_daily_water 安装脚本 (KSU/Magisk customize.sh)
+MODDIR=$(dirname "$0")
+CFGDIR=/data/adb/icbc_water
+CFG=$CFGDIR/sched.conf
+PFX=$CFGDIR/profiles
 
-ui_print "- 正在安装 ICBC 浇水小助手 (仅供学习)"
-ui_print "- 安装目录: $MODPATH"
-set_perm $MODPATH/service.sh 0 0 0755
-set_perm $MODPATH/water.sh 0 0 0755
-set_perm $MODPATH/tools/run_once.sh 0 0 0755
-set_perm $MODPATH/module.prop 0 0 0644
-set_perm $MODPATH/README.md 0 0 0644
-set_perm $MODPATH/LICENSE 0 0 0644
-set_perm $MODPATH/tools/px.py 0 0 0644
-ui_print "- 安装完成, 请重启手机生效"
+# 配置外置: 模块重刷/更新不丢 PIN 与时间设置
+mkdir -p $CFGDIR 2>/dev/null
+rm -f "$CFG".tmp.* "$CFG".pin.* 2>/dev/null
+if [ ! -f $CFG ]; then
+  cp $MODDIR/sched.conf $CFG 2>/dev/null || touch $CFG 2>/dev/null
+fi
+chmod 600 $CFG 2>/dev/null
+chmod 755 $MODDIR/service.sh $MODDIR/water.sh $MODDIR/webctl.sh $MODDIR/record.sh $MODDIR/replay.sh 2>/dev/null
+
+# Profiles 目录 + 内置工行脚本型 profile (防重装后丢失)
+mkdir -p $PFX 2>/dev/null
+if [ ! -f $PFX/icbc/conf ]; then
+  mkdir -p $PFX/icbc 2>/dev/null
+  {
+    echo P_NAME=工行定时浇水
+    echo P_TYPE=script
+    echo P_PKG=com.icbc
+    echo P_SCHED=$(grep -m1 '^SCHED_TIME=' $CFG 2>/dev/null | cut -d= -f2)
+  } > $PFX/icbc/conf 2>/dev/null
+fi
+
+# webroot 权限/SELinux 由 KSU 管理器自动处理, 这里不要动
+exit 0

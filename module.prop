@@ -1,6 +1,6 @@
 id=icbc_daily_water
-name=ICBC 浇水小助手（学习用）
-version=v0.7.7
-versionCode=77
+name=Xiaomi 17 Pro 自动化模块
+version=v0.9.6
+versionCode=906
 author=petittux
-description=每日首次打开工行 App 时自动进入热门任务浇水领 i豆。纯 root 像素注入实现，仅供学习研究，不提供任何保证。
+description=Xiaomi 17 Pro 多 Profile 自动化: 内置工行定时浇水(默认07:30) + 任意 App 录制操作回放。纯 root 直控(sendevent/screencap/getevent), 不 hook 不无障碍。KSU 管理器内置 WebUI: 录/放操作、多任务定时、锁屏密码/时间开关。

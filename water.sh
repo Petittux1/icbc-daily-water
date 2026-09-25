@@ -4,12 +4,12 @@
 echo VER v7.7
 
 # ============ 设备配置区 (每台设备按 README 校准) ============
-D=0                          # 显示ID: adb shell dumpsys display 查 mDisplayId, 多数手机为 0
-SW=1220                      # 屏幕宽(像素): adb shell wm size
+D=4630946949513469331        # 显示ID: dumpsys display 查, 多数手机为 0
+SW=1220                      # 屏幕宽(像素)
 SH=2656                      # 屏幕高(像素)
-WORK=/data/local/tmp         # 截图/取证输出目录
-SNAP=0                       # 1=留取证截图(便于排查) 0=跳过(更省时)
-CHOWN=                       # 取证文件属主 (留空=不 chown)
+WORK=/sdcard/Download        # 截图/取证输出目录
+SNAP=1                       # 1=留取证截图(便于排查) 0=跳过(更省时)
+CHOWN=10278:1023             # 取证文件属主 (留空=不 chown)
 # ============================================================
 
 RAW=$WORK/zxr.raw
@@ -208,6 +208,9 @@ if [ $H -ne 1 ]; then
   exit 1
 fi
 
+# 首页已确认: 等 2 秒让热门任务等模块渲染完再探测/点击 (避免点到未加载页)
+sleep 2
+
 # ---- 2. 入口点击 + 广告快速防御 (复用 S1 的 RAW, 不再重截) ----
 PX 1150 345
 L0=$(((Rv+Gv+Bv)/3))
@@ -221,7 +224,7 @@ M0=$((MX-MN))
 if [ $L0 -ge 160 ] && [ $M0 -le 70 ]; then
   echo S2_ENTRY
   stap 606 1067
-  sleep 2
+  sleep 3
   shot
   PX 1150 345
   L1=$(((Rv+Gv+Bv)/3))
@@ -248,7 +251,25 @@ if [ $L0 -ge 160 ] && [ $M0 -le 70 ]; then
 fi
 
 # ---- 3. 下滑一屏 + 立即参与 ----
+# 自适应等待: 网络慢时热门任务可能加载很久, 每轮截图对比内容区(y300-2300, 避开状态栏时钟),
+# 两次相同=页面稳定再下滑; 最多 8 轮(约 16~20 秒)超时也照滑, 避免死等
 echo S3_SWIPE
+K=0
+STABLE=0
+CK=
+while [ $K -lt 8 ]; do
+  screencap -d $D $RAW
+  NK=$(dd if=$RAW bs=1 skip=$((12+300*$SW*4)) count=$((2000*$SW*4)) 2>/dev/null | md5sum | cut -d' ' -f1)
+  if [ -n "$CK" ] && [ "$CK" = "$NK" ]; then
+    STABLE=1
+    echo "S3_SETTLED k=$K"
+    break
+  fi
+  CK=$NK
+  sleep 1
+  K=$((K+1))
+done
+[ $STABLE -eq 1 ] || echo "S3_WAIT_TIMEOUT k=$K"
 sswipe 610 1900 610 900
 sleep 2
 shot
